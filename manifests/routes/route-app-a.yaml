@@ -1,0 +1,22 @@
+---
+# Route requests with X-App: A header to app-a service
+apiVersion: routing.example.com/v1alpha1
+kind: HeaderRoute
+metadata:
+  name: route-app-a
+  namespace: poc
+  labels:
+    app.kubernetes.io/name: route-app-a
+    app.kubernetes.io/part-of: header-route-poc
+spec:
+  # Match on X-App header
+  headerName: X-App
+  headerValue: A
+  
+  # Route to app-a service
+  backend:
+    name: app-a
+    port: 80
+  
+  # Higher priority (evaluated first)
+  priority: 100

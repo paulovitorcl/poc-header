@@ -1,0 +1,8 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: poc
+  labels:
+    app.kubernetes.io/name: header-route-poc
+    app.kubernetes.io/part-of: header-route-poc

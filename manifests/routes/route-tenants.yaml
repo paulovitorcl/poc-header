@@ -1,0 +1,71 @@
+---
+# Route requests with X-Tenant: acme header to app-a service
+apiVersion: routing.example.com/v1alpha1
+kind: HeaderRoute
+metadata:
+  name: route-tenant-acme
+  namespace: poc
+  labels:
+    app.kubernetes.io/name: route-tenant-acme
+    app.kubernetes.io/part-of: header-route-poc
+    tenant: acme
+spec:
+  # Match on X-Tenant header
+  headerName: X-Tenant
+  headerValue: acme
+  
+  # Route to app-a service
+  backend:
+    name: app-a
+    port: 80
+  
+  # Lower priority than X-App routes
+  priority: 50
+
+---
+# Route requests with X-Tenant: globex header to app-b service
+apiVersion: routing.example.com/v1alpha1
+kind: HeaderRoute
+metadata:
+  name: route-tenant-globex
+  namespace: poc
+  labels:
+    app.kubernetes.io/name: route-tenant-globex
+    app.kubernetes.io/part-of: header-route-poc
+    tenant: globex
+spec:
+  # Match on X-Tenant header
+  headerName: X-Tenant
+  headerValue: globex
+  
+  # Route to app-b service
+  backend:
+    name: app-b
+    port: 80
+  
+  # Lower priority than X-App routes
+  priority: 50
+
+---
+# Route requests with X-Tenant: initech header to app-c service
+apiVersion: routing.example.com/v1alpha1
+kind: HeaderRoute
+metadata:
+  name: route-tenant-initech
+  namespace: poc
+  labels:
+    app.kubernetes.io/name: route-tenant-initech
+    app.kubernetes.io/part-of: header-route-poc
+    tenant: initech
+spec:
+  # Match on X-Tenant header
+  headerName: X-Tenant
+  headerValue: initech
+  
+  # Route to app-c service
+  backend:
+    name: app-c
+    port: 80
+  
+  # Lower priority than X-App routes
+  priority: 50

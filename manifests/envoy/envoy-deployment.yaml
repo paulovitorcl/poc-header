@@ -1,0 +1,109 @@
+---
+# Envoy Proxy Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: envoy
+  namespace: poc
+  labels:
+    app: envoy
+    app.kubernetes.io/name: envoy
+    app.kubernetes.io/component: proxy
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: envoy
+  template:
+    metadata:
+      labels:
+        app: envoy
+      annotations:
+        # Trigger restart when config changes
+        checksum/config: "initial"
+    spec:
+      containers:
+        - name: envoy
+          image: envoyproxy/envoy:v1.29-latest
+          ports:
+            - containerPort: 8080
+              name: http
+              protocol: TCP
+            - containerPort: 9901
+              name: admin
+              protocol: TCP
+          args:
+            - "-c"
+            - "/etc/envoy/envoy.json"
+            - "--log-level"
+            - "info"
+          resources:
+            requests:
+              memory: "64Mi"
+              cpu: "50m"
+            limits:
+              memory: "256Mi"
+              cpu: "500m"
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 9901
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /server_info
+              port: 9901
+            initialDelaySeconds: 10
+            periodSeconds: 10
+          volumeMounts:
+            - name: envoy-config
+              mountPath: /etc/envoy
+              readOnly: true
+      volumes:
+        - name: envoy-config
+          configMap:
+            name: envoy-config
+
+---
+# Envoy Service - ClusterIP for internal access
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy
+  namespace: poc
+  labels:
+    app: envoy
+spec:
+  type: ClusterIP
+  ports:
+    - port: 8080
+      targetPort: 8080
+      protocol: TCP
+      name: http
+    - port: 9901
+      targetPort: 9901
+      protocol: TCP
+      name: admin
+  selector:
+    app: envoy
+
+---
+# Envoy NodePort Service - For external access via Kind port mapping
+apiVersion: v1
+kind: Service
+metadata:
+  name: envoy-nodeport
+  namespace: poc
+  labels:
+    app: envoy
+spec:
+  type: NodePort
+  ports:
+    - port: 8080
+      targetPort: 8080
+      nodePort: 30080
+      protocol: TCP
+      name: http
+  selector:
+    app: envoy

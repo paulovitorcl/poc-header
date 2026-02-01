@@ -1,0 +1,100 @@
+---
+# Default Backend - Fallback service for unmatched routes
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: default-backend
+  namespace: poc
+  labels:
+    app: default-backend
+    app.kubernetes.io/name: default-backend
+    app.kubernetes.io/component: fallback
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: default-backend
+  template:
+    metadata:
+      labels:
+        app: default-backend
+    spec:
+      containers:
+        - name: app
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: default-backend-nginx-config
+
+---
+# Nginx configuration for Default Backend
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: default-backend-nginx-config
+  namespace: poc
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+        
+        # Default route - 404 with helpful message
+        location / {
+            default_type application/json;
+            return 404 '{"error": "not_found", "message": "No matching route found. Please provide a valid X-App or X-Tenant header.", "available_headers": ["X-App", "X-Tenant"], "example": "curl -H \"X-App: A\" http://localhost:8080/"}';
+            add_header Content-Type application/json;
+        }
+        
+        # Health check endpoint
+        location /health {
+            default_type application/json;
+            return 200 '{"status": "healthy", "app": "default-backend"}';
+        }
+        
+        # Info endpoint
+        location /info {
+            default_type application/json;
+            return 200 '{"service": "default-backend", "purpose": "fallback for unmatched routes", "hint": "Use X-App or X-Tenant header to route to specific services"}';
+        }
+    }
+
+---
+# Service for Default Backend
+apiVersion: v1
+kind: Service
+metadata:
+  name: default-backend
+  namespace: poc
+  labels:
+    app: default-backend
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: default-backend

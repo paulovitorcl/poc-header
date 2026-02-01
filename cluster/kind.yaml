@@ -1,0 +1,27 @@
+# Kind cluster configuration for Header Route POC
+# Creates a single-node cluster with port mappings for testing
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+name: header-route-poc
+
+nodes:
+  - role: control-plane
+    # Port mappings for accessing services from host
+    extraPortMappings:
+      # Envoy proxy port
+      - containerPort: 30080
+        hostPort: 8080
+        protocol: TCP
+      # Alternative port for direct service access
+      - containerPort: 30081
+        hostPort: 8081
+        protocol: TCP
+
+# Networking configuration
+networking:
+  # Disable default CNI to use kindnet
+  disableDefaultCNI: false
+  # Pod subnet
+  podSubnet: "10.244.0.0/16"
+  # Service subnet
+  serviceSubnet: "10.96.0.0/16"

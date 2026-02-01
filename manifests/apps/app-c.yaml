@@ -1,0 +1,92 @@
+---
+# App C - Backend microservice (for multi-tenant testing)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-c
+  namespace: poc
+  labels:
+    app: app-c
+    app.kubernetes.io/name: app-c
+    app.kubernetes.io/component: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: app-c
+  template:
+    metadata:
+      labels:
+        app: app-c
+    spec:
+      containers:
+        - name: app
+          image: nginx:alpine
+          ports:
+            - containerPort: 80
+              name: http
+          resources:
+            requests:
+              memory: "32Mi"
+              cpu: "10m"
+            limits:
+              memory: "64Mi"
+              cpu: "100m"
+          readinessProbe:
+            httpGet:
+              path: /
+              port: 80
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          volumeMounts:
+            - name: nginx-config
+              mountPath: /etc/nginx/conf.d/default.conf
+              subPath: default.conf
+      volumes:
+        - name: nginx-config
+          configMap:
+            name: app-c-nginx-config
+
+---
+# Nginx configuration for App C
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: app-c-nginx-config
+  namespace: poc
+data:
+  default.conf: |
+    server {
+        listen 80;
+        server_name localhost;
+        
+        location / {
+            default_type application/json;
+            return 200 '{"app": "C", "message": "Hello from App C!", "timestamp": "$time_iso8601"}';
+            add_header Content-Type application/json;
+        }
+        
+        location /health {
+            default_type application/json;
+            return 200 '{"status": "healthy", "app": "C"}';
+        }
+    }
+
+---
+# Service for App C
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-c
+  namespace: poc
+  labels:
+    app: app-c
+spec:
+  type: ClusterIP
+  ports:
+    - port: 80
+      targetPort: 80
+      protocol: TCP
+      name: http
+  selector:
+    app: app-c
